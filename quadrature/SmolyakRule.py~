@@ -1,0 +1,71 @@
+import numpy as np
+from ausiliar_functions import *
+import matplotlib.pyplot as plt
+from sys import exit
+
+def SmolyakRule(d,q,rule,bounds):  # q,d must be integers with q >= d >= 2, bounds must be a (d,2) list
+                                   # rule must belong to {'Uniform','ClenshawCurtis','ClenshawCurtis_nested','GaussLegendre'}
+    
+    bounds = np.array(bounds)
+    nodes = np.zeros((d,1))
+    weights = np.zeros((1,1))
+    for l in range(max(d,q-d+1),q+1):
+        
+        if l == d:
+            tmp1, tmp2 = univariate_rule(1,rule)
+            tmpnodes = np.zeros((d,1))
+            tmpweights = np.zeros((1,1))
+            tmpweights[0,0] = (-1)**(q-l)*binom_coeff(d-1,q-l)*tmp2[0,0]**d
+            for i in range(d):
+                tmpnodes[i,0] = (bounds[i,1]-bounds[i,0])*tmp1[0,0] + bounds[i,0]
+                tmpweights[0,0] = (bounds[i,1]-bounds[i,0])*tmpweights[0,0]
+            
+            nodes = np.concatenate((nodes,tmpnodes),axis=1)
+            weights = np.concatenate((weights,tmpweights),axis=1)
+            
+        else:
+            
+            ind, m = d_tuples(d,l)
+            for i in range(m):
+                
+                alpha = ind[i,:]
+                tmpnodes, tmpweights = univariate_rule(int(alpha[0]),rule)         
+                for j in range(1,d):
+                    tmp1, tmp2 = univariate_rule(int(alpha[j]),rule)
+                    
+                    tmpnodes = combvec(tmpnodes,tmp1)
+                    tmpweights = combvec(tmpweights,tmp2)
+                
+                for j in range(d):
+                    for k in range(tmpnodes.shape[1]):
+                        tmpnodes[j,k] = (bounds[j,1]-bounds[j,0])*tmpnodes[j,k] + bounds[j,0]
+                        tmpweights[j,k] = (bounds[j,1]-bounds[j,0])*tmpweights[j,k]    
+                
+                tmpweights = (-1)**(q-l)*binom_coeff(d-1,q-l)*np.array([np.prod(tmpweights, axis=0)])
+                
+                nodes = np.concatenate((nodes,tmpnodes),axis=1)
+                weights = np.concatenate((weights,tmpweights),axis=1)            
+    
+    nodes = nodes[:,1:]
+    weights = np.array([weights[0,1:]])
+    
+    count = 1
+    if d != q:                
+        nodes, indices, count = no_repetitions(nodes,1)
+        weights = weight_compress(weights,indices,count)
+    
+    area = 1.0 #
+    for j in range(d): #
+        area = area*(bounds[j,1]-bounds[j,0]) #
+    if (np.sum(weights)-area) > 0.0001: #
+        print '====== Error in implementation ======' #
+        exit() #
+    
+    if d == 2: #
+        plt.plot(nodes[0,:],nodes[1,:],'+',linestyle='None') #
+        plt.show() #
+    
+    print count #
+    
+    return nodes, weights, count
+

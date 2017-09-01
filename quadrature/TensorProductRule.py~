@@ -1,0 +1,42 @@
+import numpy as np
+from ausiliar_functions import *
+import matplotlib.pyplot as plt
+from sys import exit
+
+def TensorProductRule(d,n,rule,bounds):  # d must be integer with d >= 1, n must be a list of d integers >=1, 
+                                         # rule is a string, bounds must be a (d,2) list
+    
+    bounds = np.array(bounds)
+    
+    tmpnodes, tmpweights = univariate_rule(int(n[0]),rule)         
+    for j in range(1,d):
+        tmp1, tmp2 = univariate_rule(int(n[j]),rule)
+                        
+        tmpnodes = combvec(tmpnodes,tmp1)
+        tmpweights = combvec(tmpweights,tmp2)
+    
+    nodes = np.zeros((d,tmpnodes.shape[1]))
+    for j in range(d):
+        for k in range(tmpnodes.shape[1]):
+            nodes[j,k] = (bounds[j,1]-bounds[j,0])*tmpnodes[j,k] + bounds[j,0]
+            tmpweights[j,k] = (bounds[j,1]-bounds[j,0])*tmpweights[j,k]    
+                
+    weights = np.array([np.prod(tmpweights, axis=0)])
+    
+    count = nodes.shape[1]
+    
+    area = 1.0 #
+    for j in range(d): #
+        area = area*(bounds[j,1]-bounds[j,0]) #
+    if (np.sum(weights)-area) > 0.0001: #
+        print '====== Error in implementation ======' #
+        exit() #
+    
+    if d == 2: #
+        plt.plot(nodes[0,:],nodes[1,:],'+',linestyle='None') #
+        plt.show() #
+    
+    print count #
+    
+    return nodes, weights, count
+

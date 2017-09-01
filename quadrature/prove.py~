@@ -1,0 +1,5 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from ausiliar_functions import *
+
+print binom_coeff(10,4)

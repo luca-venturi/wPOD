@@ -1,0 +1,10 @@
+import numpy as np
+import math as math
+from scipy import special
+import matplotlib.pyplot as plt
+from QuadratureRule import *
+from ausiliar_functions import *
+
+x, w = univariate_rule(2,'GaussJacobi',9.,9.)
+print x
+print w
