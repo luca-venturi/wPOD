@@ -51,7 +51,7 @@ def univariate_rule(n,rule,alpha=0.,beta=0.): # univariate rule for interval [0,
             nodes = np.array([[0.5]])
         else:
             nodes = np.array([np.linspace(0,1,n)])
-            weights = (1./n)*weights # legendre weights instead?
+            weights = (1./n)*weights
     elif rule == 'ClenshawCurtis':
         nodes, weights = ClenshawCurtis_set(n) 
         nodes = nodes*0.5 + 0.5

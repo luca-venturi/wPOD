@@ -1,7 +1,5 @@
-# Author: LUCA VENTURI
-# QuadratureRules
 # INPUT:
-#			- n = maximum number of points
+#			- n = maximum number of nodes, or, if order_flag != 0, order of the quadrature rule
 #			- rule = string with the name of the rule {'Uniform','ClenshawCurtis','ClenshawCurtis_nested','GaussLegendre','GaussJacobi'}
 #			- bounds = (d,2) array with bounds of the intervals
 #			- sparse_flag = 0 for full tensor product rule, 1 for Smolyak rule
