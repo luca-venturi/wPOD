@@ -1,0 +1,101 @@
+from dolfin import *
+from RBniCS import *
+
+class Tblock(EllipticCoerciveRBBase):
+
+    def __init__(self, V, subd, bound):
+        bc_list = [
+            DirichletBC(V, 0.0, bound, 1),
+            DirichletBC(V, 0.0, bound, 2),
+            DirichletBC(V, 0.0, bound, 3),
+            DirichletBC(V, 0.0, bound, 4)
+        ]
+        super(Tblock, self).__init__(V, bc_list)
+        self.dx = Measure("dx")(subdomain_data=subd)
+        self.ds = Measure("ds")(subdomain_data=bound)
+        # Use the H^1 seminorm on V as norm, instead of the H^1 norm
+        u = self.u
+        v = self.v
+        dx = self.dx
+        scalar = inner(grad(u),grad(v))*dx
+        self.S = assemble(scalar)
+        [bc.apply(self.S) for bc in self.bc_list] # make sure to apply BCs to the inner product matrix
+    
+    ## Return the alpha_lower bound.
+    def get_alpha_lb(self):
+        return min(self.compute_theta_a())
+    
+    ## Set theta multiplicative terms of the affine expansion of a.
+    def compute_theta_a(self):
+        mu1 = self.mu[0]
+        theta_a0 = mu1
+        return (theta_a0,)
+    
+    ## Set theta multiplicative terms of the affine expansion of f.
+    def compute_theta_f(self):
+        return (1.0,)
+    
+    ## Set matrices resulting from the truth discretization of a.
+    def assemble_truth_a(self):
+        u = self.u
+        v = self.v
+        dx = self.dx
+        # Assemble A0
+        a0 = inner(grad(u),grad(v))*dx(1) + 1e-15*inner(u,v)*dx
+        A0 = assemble(a0)
+        # Return
+        return (A0,)
+    
+    ## Set vectors resulting from the truth discretization of f.
+    def assemble_truth_f(self):
+        v = self.v
+        dx = self.dx
+        ds = self.ds
+        # Assemble F0
+        f0 = v*dx
+        F0 = assemble(f0)
+        # Return
+        return (F0,)
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~     MAIN PROGRAM     ~~~~~~~~~~~~~~~~~~~~~~~~~# 
+
+# 1. Read the mesh for this problem
+mesh = Mesh("Data/1_tblock.xml")
+subd = MeshFunction("size_t", mesh, "Data/1_tblock_physical_region.xml")
+bound = MeshFunction("size_t", mesh, "Data/1_tblock_facet_region.xml")
+
+# 2. Create Finite Element space (Lagrange P1)
+V = FunctionSpace(mesh, "Lagrange", 1)
+
+# 3. Allocate an object of the Thermal Block class
+tb = Tblock(V, subd, bound)
+
+# 4. Choose PETSc solvers as linear algebra backend
+parameters.linear_algebra_backend = 'PETSc'
+
+# 5. Set mu range, xi_train and Nmax
+distribution = BetaDistribution(alpha=[(10.,10.)])
+density = BetaWeight(alpha=[(10.,10.)])
+# original_density = NameWeight()
+# density = IndicatorWeight(original_density, 0.1)
+mu_range = [(1.0, 7.0)]
+tb.setmu_range(mu_range)
+tb.setxi_train(1000, sampling=distribution)
+tb.set_density(weight=density)
+tb.set_weighted_flag(1)
+tb.setNmax(10)
+
+# 6. Perform the offline phase
+first_mu = 3.0
+tb.setmu(first_mu)
+tb.offline()
+
+# 7. Perform an online solve
+online_mu = 4.0
+tb.setmu(online_mu)
+tb.online_solve()
+
+# 8. Perform an error analysis
+tb.setxi_test(500, sampling=distribution)
+tb.error_analysis()

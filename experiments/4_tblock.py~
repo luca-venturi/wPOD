@@ -1,0 +1,121 @@
+from dolfin import *
+from RBniCS import *
+
+class Tblock(EllipticCoerciveRBBase):
+
+    def __init__(self, V, subd, bound):
+        bc_list = [
+            DirichletBC(V, 0.0, bound, 1),
+            DirichletBC(V, 0.0, bound, 2),
+            DirichletBC(V, 0.0, bound, 3),
+            DirichletBC(V, 0.0, bound, 4),
+            DirichletBC(V, 0.0, bound, 5),
+            DirichletBC(V, 0.0, bound, 6),
+            DirichletBC(V, 0.0, bound, 7),
+            DirichletBC(V, 0.0, bound, 8)
+        ]
+        super(Tblock, self).__init__(V, bc_list)
+        self.dx = Measure("dx")(subdomain_data=subd)
+        self.ds = Measure("ds")(subdomain_data=bound)
+        # Use the H^1 seminorm on V as norm, instead of the H^1 norm
+        u = self.u
+        v = self.v
+        dx = self.dx
+        scalar = inner(grad(u),grad(v))*dx
+        self.S = assemble(scalar)
+        [bc.apply(self.S) for bc in self.bc_list] # make sure to apply BCs to the inner product matrix
+    
+    ## Return the alpha_lower bound.
+    def get_alpha_lb(self):
+        return min(self.compute_theta_a())
+    
+    ## Set theta multiplicative terms of the affine expansion of a.
+    def compute_theta_a(self):
+        mu1 = self.mu[0]
+    	mu2 = self.mu[1]
+    	mu3 = self.mu[2]
+    	mu4 = self.mu[3]
+        theta_a0 = mu1
+        theta_a1 = mu2
+    	theta_a2 = mu3
+        theta_a3 = mu4
+        return (theta_a0, theta_a1, theta_a2, theta_a3)
+    
+    ## Set theta multiplicative terms of the affine expansion of f.
+    def compute_theta_f(self):
+        return (1.0,)
+    
+    ## Set matrices resulting from the truth discretization of a.
+    def assemble_truth_a(self):
+        u = self.u
+        v = self.v
+        dx = self.dx
+        # Assemble A0
+        a0 = inner(grad(u),grad(v))*dx(1) + 1e-15*inner(u,v)*dx
+        A0 = assemble(a0)
+        # Assemble A1
+        a1 = inner(grad(u),grad(v))*dx(2) + 1e-15*inner(u,v)*dx
+        A1 = assemble(a1)
+    	# Assemble A2
+        a2 = inner(grad(u),grad(v))*dx(3) + 1e-15*inner(u,v)*dx
+        A2 = assemble(a2)
+        # Assemble A3
+        a3 = inner(grad(u),grad(v))*dx(4) + 1e-15*inner(u,v)*dx
+        A3 = assemble(a3)
+        # Return
+        return (A0, A1, A2, A3)
+    
+    ## Set vectors resulting from the truth discretization of f.
+    def assemble_truth_f(self):
+        v = self.v
+        dx = self.dx
+        ds = self.ds
+        # Assemble F0
+        f0 = v*ds(1) + 1e-15*v*dx
+        F0 = assemble(f0)
+        # Return
+        return (F0,)
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~     MAIN PROGRAM     ~~~~~~~~~~~~~~~~~~~~~~~~~# 
+
+# 1. Read the mesh for this problem
+mesh = Mesh("Data/4_tblock.xml")
+subd = MeshFunction("size_t", mesh, "Data/4_tblock_physical_region.xml")
+bound = MeshFunction("size_t", mesh, "Data/4_tblock_facet_region.xml")
+
+# 2. Create Finite Element space (Lagrange P1)
+V = FunctionSpace(mesh, "Lagrange", 1)
+
+# 3. Allocate an object of the Thermal Block class
+tb = Tblock(V, subd, bound)
+
+# 4. Choose PETSc solvers as linear algebra backend
+parameters.linear_algebra_backend = 'PETSc'
+
+# 5. Set mu range, xi_train and Nmax
+distribution = Beta(alpha=[(10.,10.),(10.,10.),(10.,10.),(10.,10.)])
+density = BetaDensity(alpha=[(10.,10.),(10.,10.),(10.,10.),(10.,10.)])
+# original_density = NameDensity()
+# density = IndicatorDensity(original_density, 0.1)
+mu_range = [(0.1, 3.0),(0.1,1.0),(0.1,1.0),(0.1,3.0)]
+tb.setmu_range(mu_range)
+tb.setxi_train(1000, sampling=distribution)
+tb.set_density(weight=density)
+tb.set_weighted_flag(1)
+tb.setNmax(7) # Invece voglio anche poter impostare una tolleranza e ricevere l'Nmax
+
+# 6. Perform the offline phase
+first_mu = (1.0,0.5,0.5,1.0)
+tb.setmu(first_mu)
+tb.offline()
+
+# 7. Perform an online solve
+online_mu = (2.0,0.5,0.5,2.0)
+tb.setmu(online_mu)
+tb.online_solve() # metterei qualcosa tipo tb.online_solve(flag=mean) che mi calcola una soluzione media a basi ridotte
+                  # c'e anche un offline solve?
+
+# 8. Perform an error analysis
+tb.setxi_test(500, sampling=distribution) # L'errore deve essere calcolato con la distribuzione
+tb.error_analysis()
