@@ -1,0 +1,39 @@
+import numpy as np
+import itertools # for linspace sampling
+import scipy.stats
+
+class Density(object):
+    def density(self, mu_range, xi):
+        pass
+
+class UniformDensity(Density):
+    # da fare
+        
+class BetaDensity(Density):
+    def __init__(self, alpha, beta):
+        self.alpha = alpha
+        self.beta = beta
+    
+    def density(self, mu_range, xi):
+        p = []
+        for i in range(len(xi)):
+            p_mu = []
+            for j in range(len(mu_range)):
+                p_mu.append(scipy.stats.beta.pdf(xi[i][j], self.alpha[j], self.beta[j])) # utilizza self.alpha, self.beta
+            p.append(tuple(p_mu))
+        return p
+        
+class IndicatorDensity(Density):
+    def __init__(self, original_density, treshold):
+        self.original_density = original_density
+        self.treshold = treshold
+        
+    def density(self, mu_range, xi):
+        p = self.original_density.density(mu_range, xi)
+        for i in range(len(xi)):
+            for j in range(len(mu_range)):
+                if p[i][j] < self.treshold:
+                    p[i][j] = 0.
+        return p
+
+        
