@@ -1,3 +1,4 @@
 # wPOD
+RBniCS implementation of Weighted Proper Orthogonal Decomposition / Greedy algorithms 
 
-RBniCS: http://mathlab.sissa.it/rbnics
+RBniCS: https://gitlab.com/RBniCS/RBniCS
