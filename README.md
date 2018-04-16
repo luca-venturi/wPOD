@@ -1,4 +1,7 @@
 # wPOD
-RBniCS implementation of Weighted Proper Orthogonal Decomposition / Greedy algorithms 
 
-RBniCS: https://gitlab.com/RBniCS/RBniCS
+Code accompanying the paper: [A Weighted POD Method for Elliptic PDEs with Random Inputs](https://arxiv.org/abs/1802.08724)
+
+## Prerequisites
+
+- [RBniCS](https://gitlab.com/RBniCS/RBniCS)
