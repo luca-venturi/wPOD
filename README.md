@@ -1,6 +1,7 @@
 # wPOD
 
-Code accompanying the paper: [A Weighted POD Method for Elliptic PDEs with Random Inputs](https://arxiv.org/abs/1802.08724)
+Code accompanying the papers: 
+[A Weighted POD Method for Elliptic PDEs with Random Inputs](https://arxiv.org/abs/1802.08724)
 
 ## Prerequisites
 
