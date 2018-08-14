@@ -9,4 +9,4 @@ Code accompanying the papers:
 
 - [RBniCS](https://gitlab.com/RBniCS/RBniCS)
 
-See also [Tutorial 10](Tutorial 10)
+See also [Tutorial 10](https://gitlab.com/RBniCS/RBniCS/tree/master/tutorials/10_weighted_uq)
